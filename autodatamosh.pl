@@ -1,12 +1,61 @@
 #!/usr/bin/perl
 
-# Autodatamosh script copyright 2009 Joe Friedl
+# Autodatamosh script copyleft 2009 Joe Friedl
 # http://joefriedl.net
 #
 # Released under the GPLv3 license: http://www.gnu.org/licenses/gpl.html
 
 use strict;
 use warnings;
+
+# Use STDIN and STDOUT by default
+open(our $infile,'<&STDIN');
+open(our $outfile,'>&STDOUT');
+
+my $infilename = '';
+my $outfilename = '';
+
+# Loop through command line arguments
+for my $n (0..$#ARGV)
+{
+	for ($ARGV[$n])
+	{
+		# Strings that don't start with "-" will be treated as the input filename.
+		# If more than one is given, the last one will be used.
+		/^[^-]+/	&& do {
+					$infilename = $_;
+					last;
+				};
+
+		# - reads from STDIN
+		/^-$/		&& do {
+					$infilename = '';
+					last;
+				};
+
+		# -o outfile
+		/^-o$/		&& do {
+					# Check for existence of next argument
+					if ($#ARGV < ($n+1)) { die("No output file specified.\n"); }
+
+					$outfilename = ($ARGV[$n+1] eq '-') ? '': $ARGV[$n+1];
+					$n++;
+					last;
+				};
+
+		# Default: Unknown option warning
+				do {
+					print STDERR "Unknown option: ".$_."\n";
+					last;
+				}
+	}
+}
+
+# Attempt to open files if they were specified on the command line
+if (length $infilename) { open($infile,'<',$infilename) or die("Could not open '".$infilename."': $!"); }
+if (length $outfilename) { open($outfile,'>',$outfilename) or die("Could not open '".$outfilename."': $!"); }
+
+
 
 # Output flag
 my $out = 1;
@@ -26,7 +75,7 @@ my $tmp;
 # First I-frame flag
 my $first = 1;
 
-while (<STDIN>)
+while (<$infile>)
 {
 	# Split input into an array of 8-bit values
 	@buf = split('',$_);
@@ -90,5 +139,5 @@ while (<STDIN>)
 	}
 
 	# Dump output buffer
-	print $outbuf;
+	print $outfile $outbuf;
 }
