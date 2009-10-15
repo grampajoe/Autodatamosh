@@ -8,6 +8,15 @@
 use strict;
 use warnings;
 
+use Getopt::Long;
+
+
+################
+##            ##
+##  DEFAULTS  ##
+##            ##
+################
+
 # Use STDIN and STDOUT by default
 open(our $infile,'<&STDIN');
 open(our $outfile,'>&STDOUT');
@@ -15,40 +24,32 @@ open(our $outfile,'>&STDOUT');
 my $infilename = '';
 my $outfilename = '';
 
-# Loop through command line arguments
-for my $n (0..$#ARGV)
+our $dprob = 0.05;	# P-frame duplication probability
+
+our $dmin = 10;	# P-frame duplication minimum
+our $dmax = 50; # P-frame duplication maximum
+
+
+
+##############################
+##                          ##
+##  COMMAND LINE ARGUMENTS  ##
+##                          ##
+##############################
+
+GetOptions(
+	'i:s' => \$infilename,
+	'o:s' => \$outfilename,
+	'dmin:i' => \$dmin,
+	'dmax:i' => \$dmax,
+	'dprob:f' => \$dprob
+);
+
+# Ensure dmin is less than or equal to dmax
+if ($dmin > $dmax)
 {
-	for ($ARGV[$n])
-	{
-		# Strings that don't start with "-" will be treated as the input filename.
-		# If more than one is given, the last one will be used.
-		/^[^-]+/	&& do {
-					$infilename = $_;
-					last;
-				};
-
-		# - reads from STDIN
-		/^-$/		&& do {
-					$infilename = '';
-					last;
-				};
-
-		# -o outfile
-		/^-o$/		&& do {
-					# Check for existence of next argument
-					if ($#ARGV < ($n+1)) { die("No output file specified.\n"); }
-
-					$outfilename = ($ARGV[$n+1] eq '-') ? '': $ARGV[$n+1];
-					$n++;
-					last;
-				};
-
-		# Default: Unknown option warning
-				do {
-					print STDERR "Unknown option: ".$_."\n";
-					last;
-				}
-	}
+	print STDERR "Warning: Duplication maximum is less than minimum. Using $dmin.\n";
+	$dmax = $dmin;
 }
 
 # Attempt to open files if they were specified on the command line
@@ -57,87 +58,105 @@ if (length $outfilename) { open($outfile,'>',$outfilename) or die("Could not ope
 
 
 
-# Output flag
-my $out = 1;
 
-# Sequence counter
-my $seq = 0;
+#################
+##             ##
+##  THE MAGIC  ##
+##             ##
+#################
 
-# Bit pattern that marks the beginning of an I-frame.
-# If the first part, "00dc" (ASCII), is found, the script can assume a
-# new frame has started
-my @pattern = split('',"00dc*****".pack("H*","0001b0"));
+# I-frame marker
+our $istart = pack('H*','0001b0');
 
-my @buf;
-my $outbuf;
-my $tmp;
+# Deleted frame count
+our $deleted = 0;
 
-# First I-frame flag
-my $first = 1;
 
-while (<$infile>)
+# Number of times to duplicate P-frame
+our $ndup = 0;
+
+# Number of frames to skip before outputting duplicated P-frames
+our $skip = 0;
+
+# Buffer for duplicated P-frames
+our $buf;
+
+
+# Loop through blocks delimited by 00dc
 {
-	# Split input into an array of 8-bit values
-	@buf = split('',$_);
+	# Block delimiter
+	local $/ = '00dc';
 
-	# Initialize output
-	$outbuf = '';
+	# First I-frame flag, used to prevent first I-frame from being removed
+	my $first = 1;
 
-	for (my $i = 0; $i < @buf; $i++)
+
+	for (<$infile>)
 	{
-		# If the pattern has started, stop output, start saving in $tmp,
-		# and increment sequence counter
-		if (($pattern[$seq] eq '*') || ($buf[$i] eq $pattern[$seq]))
+		# Check for first I-frame or non-I-frame
+		if ($first == 1 || (substr($_,5,3) ne $istart))
 		{
-			$seq++;
-			$tmp .= $buf[$i];
+			# If frames are to be skipped, do so
+			if ($skip > 0) { $skip--; next; }
 
-			if ($seq == @pattern)
+			# Frame duplication
+			if ($ndup > 0)
 			{
-				# We've reached the end of the sequence
+				# Catch any frames that were deleted while skipping
+				$ndup += $deleted;
 
-				# Continue output if this is the first frame
-				if ($first)
+				# Duplicate
+				for my $i (1..$ndup)
 				{
-					$outbuf .= $tmp;
-					$tmp = '';
-					$seq = 0;
+					print $outfile $_;
+				}
 
-					$first = 0;
+				# Reset duplicated and deleted count
+				$ndup = $deleted = 0;
+			}
+
+			# If $deleted > 0, this is the first non-I-frame after deletion
+			if ($deleted > 0)
+			{
+				# We need to output $deleted + 1 frames to include the current frame
+				$deleted++;
+
+				# Determine whether extra duplicates will be made. This produces a long, sweeping effect.
+				$ndup = (rand() < $dprob) ? int(rand($dmax - $dmin)) + $dmin : 0;
+
+				# Set frames to be skipped
+				$skip = $ndup;
+
+				# If no skipping is to be done, fill in gaps caused by deletions with current frame
+				if ($skip <= 0)
+				{
+					for (my $i = 0; $i < $deleted; $i++)
+					{
+						print $outfile $_;
+					}
 				}
 				else
 				{
-					# Stop output and get rid of $tmp
-					$tmp = '';
-					$out = $seq = 0;
+					# Add number of deleted frames to number of duplicate frames so they can be replaced after skipping
+					$ndup += $deleted;
 				}
+
+				# Reset deleted frame counter
+				$deleted = 0;
+			}
+			else
+			{
+				# If this was the first I-frame (and not just data at the beginning of the file), set first flag to 0
+				if ($first && substr($_,5,3) eq $istart) { $first = 0; }
+
+				# Dump data
+				print $outfile $_;
 			}
 		}
 		else
 		{
-			# If the sequence had started, dump $tmp if not within an I-frame
-			if ($seq > 0)
-			{
-				# If a new frame started, start output back up
-				# This will catch new frames after an I-frame
-				if ($seq > 7) { $out = 1; }
-
-				# If we're outputting, append $tmp to output
-				if ($out) { $outbuf .= $tmp; }
-
-				# Re-init $tmp
-				$tmp = '';
-			}
-
-			# No frame container has been detected, output normally
-			# if not within an I-frame
-			if ($out) { $outbuf .= $buf[$i]; }
-
-			# Reset sequence
-			$seq = 0;
+			# An I-frame was present, increment deleted counter
+			$deleted++;
 		}
 	}
-
-	# Dump output buffer
-	print $outfile $outbuf;
 }
