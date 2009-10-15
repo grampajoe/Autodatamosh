@@ -78,9 +78,6 @@ our $ndup = 0;
 # Number of frames to skip before outputting duplicated P-frames
 our $skip = 0;
 
-# Buffer for duplicated P-frames
-our $buf;
-
 
 # Loop through blocks delimited by 00dc
 {
