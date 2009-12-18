@@ -88,7 +88,7 @@ our $skip = 0;
 	my $first = 1;
 
 
-	for (<$infile>)
+	while (<$infile>)
 	{
 		# Check for first I-frame or non-I-frame
 		if ($first == 1 || (substr($_,5,3) ne $istart))
