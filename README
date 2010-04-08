@@ -1,19 +1,32 @@
-Autodatamosh.pl - An automatic datamoshing script for AVI videos written in Perl.
+Autodatamosh.pl
+An automatic datamoshing script for AVI videos in Perl.
 
 Copyright 2009, 2010 Joe Friedl http://joefriedl.net
 Released under the terms of the GNU General Public License (GPL).
 
 
-This script automatically datamoshes AVI videos. It works for standalone files, and is designed to be usable between two streams (e.g. datamoshing a video as it's being encoded by ffmpeg.) It uses a brute force method to strip I-frames from videos, and replaces them with adjacent P-frames while optionally duplicating the P-frames. The length of datamoshed videos will be preserved so the original audio can be used. It's also sometimes fun to use the audio of the datamoshed video, since the script makes no distinction between audio and video streams within each frame and it gets chopped up.
+    This script automatically datamoshes AVI videos encoded with Xvid.
+It works for standalone files, and is designed to be usable between two
+streams (e.g. datamoshing a video as it's being encoded by ffmpeg.) It
+uses a brute force method to strip I-frames (image frames) from videos,
+and replaces them with adjacent P-frames (motion frames) while
+optionally duplicating the P-frames. The length of datamoshed videos
+will be preserved so the original audio can be used. It's also sometimes
+fun to use the audio of the datamoshed video, since the script makes no
+distinction between audio and video streams within each frame and it
+gets chopped up.
 
-As you've probably guessed, this is by no means intended to be technical or precise. I wrote it just for fun, and I make no guarantees of success or the production of anything interesting.
+    As you've probably guessed, this is by no means intended to be
+technical or precise. I wrote it just for fun, and I make no
+guarantees of success or the production of anything interesting.
 
 Feel free to use any of the code for anything you want.
 
 
 
 USAGE
-	perl autodatamosh.pl [-i FILE] [-o FILE] [-dprob N] [-dmin N] [-dmax N]
+	perl autodatamosh.pl [-i FILE] [-o FILE] [-dprob N] [-dmin N]
+		[-dmax N]
 
 OPTIONS
 	-i FILE
@@ -23,13 +36,20 @@ OPTIONS
 		Output file. Default is stdout.
 
 	-dprob N
-		This is the probability (where N is between 0 and 1) that frames will be duplicated when an I-frame is removed, producing a sweeping effect. Default is 0.5 (50%). To do conventional datamoshing without any such effects, set this to 0.
+		This is the probability (where N is between 0 and 1)
+		that frames will be duplicated when an I-frame is
+		removed, producing a sweeping effect. Default is 0.
 
 	-dmin N
-		Minumum number of frames to be duplicated. The actual amount duplicated will vary randomly between this and the value of dmax. Default is 10.
+		Minumum number of frames to be duplicated. The actual
+		amount duplicated will vary randomly between this and
+		the value of dmax. Default is 10.
 
 	-dmax N
-		Maximum number of frames to be duplicated. The actual amount duplicated will vary randomly between this and the value of dmin. Default is 50.
+		Maximum number of frames to be duplicated. The actual
+		amount duplicated will vary randomly between this and
+		the value of dmin. Default is 50.
 
 EXAMPLES
-	There are examples of videos datamoshed by this script on my Youtube channel: http://youtube.com/grampaj0e
+	There are examples of videos datamoshed by this script on my
+	Youtube channel: http://youtube.com/grampaj0e
