@@ -1,5 +1,8 @@
 Autodatamosh.pl - An automatic datamoshing script for AVI videos written in Perl.
-Copyleft 2009 Joe Friedl http://joefriedl.net
+
+Copyright 2009, 2010 Joe Friedl <http://joefriedl.net>
+Released under the terms of the GNU General Public License (GPL).
+
 
 This script automatically datamoshes AVI videos. It works for standalone files, and is designed to be usable between two streams (e.g. datamoshing a video as it's being encoded by ffmpeg.) It uses a brute force method to strip I-frames from videos, and replaces them with adjacent P-frames while optionally duplicating the P-frames. The length of datamoshed videos will be preserved so the original audio can be used. It's also sometimes fun to use the audio of the datamoshed video, since the script makes no distinction between audio and video streams within each frame and it gets chopped up.
 
