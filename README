@@ -1,6 +1,6 @@
 Autodatamosh.pl - An automatic datamoshing script for AVI videos written in Perl.
 
-Copyright 2009, 2010 Joe Friedl <http://joefriedl.net>
+Copyright 2009, 2010 Joe Friedl http://joefriedl.net
 Released under the terms of the GNU General Public License (GPL).
 
 
@@ -30,3 +30,6 @@ OPTIONS
 
 	-dmax N
 		Maximum number of frames to be duplicated. The actual amount duplicated will vary randomly between this and the value of dmin. Default is 50.
+
+EXAMPLES
+	There are examples of videos datamoshed by this script on my Youtube channel: http://youtube.com/grampaj0e
