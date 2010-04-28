@@ -1,0 +1,9 @@
+MEDIUM PRIORITY
+- Verify that files being passed in are the correct format (AVI/Xvid)
+- Test on other OSes
+- Test with other codecs
+
+LOW PRIORITY
+- Clean things up a bit
+- Add support for additional containers and/or codecs
+- Investigate less hackish methods for manipulating frames
