@@ -21,6 +21,9 @@ use warnings;
 
 use Getopt::Long;
 
+use File::Format::RIFF;
+use Data::Dumper; # TEMPORARY, for testing
+
 
 ################
 ##            ##
@@ -76,19 +79,90 @@ if (length $outfilename) { open($outfile,'>',$outfilename) or die("Could not ope
 ##             ##
 #################
 
-# I-frame marker
-our $istart = pack('H*','0001b0');
+our $error = 0; # Error flag for the next section
 
-# Deleted frame count
-our $deleted = 0;
+our $istart = pack('H*','0001b0'); # I-frame marker
 
 
-# Number of times to duplicate P-frame
-our $ndup = 0;
+# Recursively reconstruct file
+sub blowchunks
+{
+	my $data = shift;
 
-# Number of frames to skip before outputting duplicated P-frames
-our $skip = 0;
+	my @out;
 
+	for my $chunk (@{$data})
+	{
+		my $id = $chunk->id;
+
+		if ($id eq 'LIST')
+		{
+			my $data = $chunk->{data};
+
+			my @moshed = blowchunks($data);
+			my $list = new File::Format::RIFF::List($chunk->type, \@moshed);
+
+			push(@out,$list);
+		}
+		else
+		{
+			next if ($chunk->size > 3 && substr($chunk->{'data'},1,3) eq $istart);
+
+			push(@out, $chunk);
+		}
+	}
+
+	return @out;
+}
+
+# Create a File::Format::RIFF object
+eval # (try)
+{
+	our $riff = File::Format::RIFF->read($infile) or die("Error reading file \'$infilename\': $!");
+
+	# Check the container type
+	if ($riff->type !~ /^(AVI )$/)
+	{
+		$error = 1;
+
+		print STDERR $riff->type." is not supported.\n";
+	}
+	else
+	{
+		my @data = $riff->data;
+
+		my @moshed = blowchunks(\@data);
+		my $out = new File::Format::RIFF($riff->type, \@moshed);
+
+		$out->write($outfile);
+
+		exit;
+	}
+};
+if ($@) # (catch)
+{
+	# File::Format::RIFF doesn't like it
+	$error = 1;
+
+	print STDERR $@;
+}
+
+# Something's weird with the file, but allow the user to continue anyway
+if ($error)
+{
+	print STDERR "Do you want to continue anyway? [y/n] ";
+
+	read(STDIN,my $response,1);
+
+	if ($response !~ /^(y|yes)$/i) { print STDERR "Aborting.\n"; exit 1; }
+}
+
+
+our $deleted = 0; # Deleted frame count
+
+our $ndup = 0; # Number of times to duplicate P-frame
+
+our $skip = 0; # Number of frames to skip before outputting duplicated P-frames
 
 # Loop through blocks delimited by 00dc
 {
