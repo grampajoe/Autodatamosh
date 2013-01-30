@@ -40,7 +40,7 @@ our $dprob = 0;	# P-frame duplication probability
 our $dmin = 10;	# P-frame duplication minimum
 our $dmax = 50; # P-frame duplication maximum
 
-
+our $fprob = 1; # Probability that 
 
 ##############################
 ##                          ##
@@ -53,7 +53,8 @@ GetOptions(
 	'o:s' => \$outfilename,
 	'dmin:i' => \$dmin,
 	'dmax:i' => \$dmax,
-	'dprob:f' => \$dprob
+	'dprob:f' => \$dprob,
+	'fprob:f' => \$fprob
 );
 
 # Ensure dmin is less than or equal to dmax
@@ -102,7 +103,7 @@ our $skip = 0;
 	while (<$infile>)
 	{
 		# Check for first I-frame or non-I-frame
-		if ($first == 1 || (substr($_,5,3) ne $istart))
+		if ($first == 1 || (substr($_,5,3) ne $istart) || rand() > $fprob)
 		{
 			# If frames are to be skipped, do so
 			if ($skip > 0) { $skip--; next; }

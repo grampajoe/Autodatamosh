@@ -60,6 +60,10 @@ OPTIONS
 -o FILE
 	Output file. Default is stdout.
 
+-fprof N
+	The probability (where N is between 0 and 1) that any effects
+	will take place on a given frame
+
 -dprob N
 	The probability (where N is between 0 and 1) that P-frames will
 	be duplicated when an I-frame is removed, producing a sweeping
